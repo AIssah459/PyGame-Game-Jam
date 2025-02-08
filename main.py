@@ -1,6 +1,6 @@
 # Example file showing a basic pygame "game loop"
 import pygame
-from gameutils.imgutils import load_image, load_image_no_convert
+from gameutils.imgutils import load_image, load_image_no_convert, load_sound
 from gameutils.entities import PhysicsEntity
 
 class Game:
@@ -8,7 +8,8 @@ class Game:
     def __init__(self):
         self.devmode = True
         pygame.init()
-        self.screen = pygame.display.set_mode((1280, 720))
+        self.resolution = (1280, 720)
+        self.screen = pygame.display.set_mode((1920, 1080))
         pygame.display.set_caption("PyGame-Game-Jam")
         self.clock = pygame.time.Clock()
         self.gravity = False
@@ -16,35 +17,28 @@ class Game:
         self.assets = {
             'player-img': load_image_no_convert('Dummies/dummy_player-removebg-preview.png'),
             'bullet-img': load_image_no_convert('Dummies/dummy-bullet.gif'),
-            'background-img': load_image('Dummies/dummy-background.jpeg')
+            'background-img': load_image('Dummies/dummy-background-space-3.jpeg'),
+            'bullet-sound': load_sound('Dummies/laser-shot-ingame-230500.mp3')
         }
-        self.e_player = PhysicsEntity(self, 'player', (0, 20), (200, 200), self.assets['player-img'])
+        self.e_player = PhysicsEntity(self, 'player', (0, 20), (100, 75), self.assets['player-img'])
         self.bullets = []
 
     def render_background(self):
         background = pygame.transform.scale(self.assets['background-img'], self.screen.get_size())
         self.screen.blit(background, (0, 0))
 
-    def toggle_gravity(self):
-        if self.gravity == True:
-            self.gravity = False
-            print("Gravity turned off.")
-        elif self.gravity == False:
-            self.gravity = True
-            print("Gravity turned on")
-
     def shoot_bullet(self):
         if len(self.bullets) < 3:
             bullet = PhysicsEntity(self, 'bullet', (self.e_player.pos[0] + self.e_player.width, self.e_player.pos[1]), (50, 50), self.assets['bullet-img'])
             bullet.img.set_colorkey('black')
             self.bullets.append(bullet)
-
+            self.assets['bullet-sound'].play()
+            
     
     def handle_key_input(self, e: pygame.event):
         if(e.type == pygame.KEYDOWN):
             if(self.devmode):
-                if e.key == pygame.K_g:
-                    self.toggle_gravity()
+                pass
             if e.key == pygame.K_b:
                 self.shoot_bullet()
             if e.key == pygame.K_UP:
@@ -90,6 +84,9 @@ class Game:
                 for bullet in self.bullets:
                     bullet.update()
                     bullet.render(self.screen)
+                    if(bullet.out_of_bounds()):
+                        self.bullets.remove(bullet)
+                    
 
             # flip() the display to put your work on screen
             # pygame.display.flip()
