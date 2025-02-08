@@ -64,7 +64,7 @@ class PhysicsEntity:
                     frame_movement = (self.velocity[0], self.velocity[1])
                     self.pos[0] += frame_movement[0]
             if self.movingRight:
-                if(self.pos[0] < self.game.screen.get_size()[0] - self.width):
+                if(self.pos[0] < ((self.game.screen.get_size()[0]/2) - self.width)):
                     self.move_right()
                     frame_movement = (self.velocity[0], self.velocity[1])
                     self.pos[0] += frame_movement[0]
