@@ -4,11 +4,14 @@ from time import sleep
 import random
 from threading import Thread
 from gameutils.imgutils import load_image, load_image_no_convert, load_sound
-from gameutils.entities import PhysicsEntity
+from gameutils.entities import PhysicsEntity, EnemyEntity
 
 DEFAULT_SCREEN_RESOLUTION = (1280, 720)
-HOMING_STRENGTH = 5
 RELOAD_TIME = 2
+PLAYER_HEIGHT = 75
+PLAYER_WIDTH = 100
+STARTING_POS = (0, (DEFAULT_SCREEN_RESOLUTION[1]/2 - PLAYER_HEIGHT/2))
+NUM_ENEMIES = 1
 
 class Game:
     # pygame setup
@@ -32,7 +35,8 @@ class Game:
             'background-img': load_image('Dummies/dummy-background-space-3.jpeg'),
             'bullet-sound': load_sound('Dummies/laser-shot-ingame-230500.mp3')
         }
-        self.e_player = PhysicsEntity(self, 'player', (0, 20), (100, 75), self.assets['player-img'])
+        self.e_player = PhysicsEntity(self, 'player', STARTING_POS, (PLAYER_WIDTH, PLAYER_HEIGHT), self.assets['player-img'])
+        self.wave = 1
         self.score = 0
         self.bullets = []
         self.magazine = 5
@@ -43,6 +47,25 @@ class Game:
         self.magazine_text = f"BULLETS: {self.magazine}"
         self.menu_text = f"PRESS ANY KEY TO PLAY"
         self.prev_rand = 0
+
+    def reset_battle(self):
+        self.wave = 1
+        self.score = 0
+        self.e_player.health = 5
+        self.magazine = 5
+        self.prev_rand = 0
+
+        self.e_player.pos = list(STARTING_POS)
+
+        self.score_text = f"SCORE: {self.score}"
+        self.magazine_text = f"BULLETS: {self.magazine}"
+
+        if len(self.bullets) > 0:
+            for bullet in self.bullets:
+                self.bullets.remove(bullet)
+        if len(self.enemies) > 0:
+            for enemy in self.enemies:
+                self.enemies.remove(enemy)
 
     
     def display_menu_text(self):
@@ -83,89 +106,13 @@ class Game:
         self.magazine_text = f"BULLETS: {self.magazine}"
         self.reloading = False
 
-    # ENEMY ACTIONS, SUCH AS ATTACKING AND RETREATING
-
     def spawn_enemy(self, num_enemtes):
         self.spawning_enemy = True
         sleep(1)
         for i in range(num_enemtes):
-            self.enemies.append(PhysicsEntity(self, 'enemy', (self.screen.get_size()[0] - 100, random.randint(0, self.screen.get_size()[1] - (100 + 100))), (100, 100), self.assets['enemy-img']))
+            if len(self.enemies) < (self.wave // 10) + 1:
+                self.enemies.append(EnemyEntity(self, 'enemy', (self.screen.get_size()[0] - 100, random.randint(0, self.screen.get_size()[1] - (100 + 100))), (100, 100), self.assets['enemy-img']))
         self.spawning_enemy = False
-
-    def enemy_idle(self, e_enemy):
-        if not e_enemy.idle:
-            return
-        sleep(0.5)
-        e_enemy.idling = True
-        if e_enemy.idle:
-            rand_num = random.randint(1, 7)
-            if rand_num == 1:
-                self.prev_rand = rand_num
-                if e_enemy.pos[1] <= 15:
-                    pass
-                else:
-                    if e_enemy.movingDown:
-                        e_enemy.movingDown = False
-                    e_enemy.movingUp = True
-            elif rand_num == 2:
-                self.prev_rand = rand_num
-                if e_enemy.pos[1] > self.screen.get_size()[1] - (100 + 100 + 5):
-                    pass
-                if e_enemy.movingUp:
-                    e_enemy.movingUp = False
-                e_enemy.movingDown = True
-            elif rand_num == (3 or 4 or 5):
-                e_enemy.idle = False
-                e_enemy.attacking = True
-                self.enemy_attack(e_enemy)
-            
-            else:
-                if self.prev_rand == rand_num:
-                    pass
-                else:
-                    self.prev_rand = rand_num
-                    e_enemy.movingUp = False
-                    e_enemy.movingDown = False
-                    sleep(2)
-        e_enemy.idling = False
-
-    def enemy_attack(self, e_enemy):
-        e_enemy.idle = False
-        if e_enemy.pos[0] > self.e_player.pos[0]:
-            e_enemy.movingRight = False
-            e_enemy.movingLeft = True
-        elif e_enemy.pos[0] < self.e_player.pos[0]:
-            e_enemy.movingLeft = False
-            e_enemy.movingRight = True
-
-        if(e_enemy.pos[0] < (20 * self.screen.get_size()[0]/100)):
-            e_enemy.movingUp = False
-            e_enemy.movingDown = False
-        else:
-            if abs(self.e_player.pos[1] - e_enemy.pos[1]) < HOMING_STRENGTH:
-                e_enemy.movingUp = False
-                e_enemy.movingDown = False
-                e_enemy.pos[1] = self.e_player.pos[1]
-            if e_enemy.pos[1] > self.e_player.pos[1]:
-                e_enemy.movingDown = False
-                e_enemy.movingUp = True
-            elif e_enemy.pos[1] < self.e_player.pos[1]:
-                e_enemy.movingUp = False
-                e_enemy.movingDown = True
-
-    def enemy_retreat(self, e_enemy):
-        e_enemy.idle = False
-        e_enemy.movingUp = False
-        e_enemy.movingDown = False
-        e_enemy.movingLeft = False
-        e_enemy.movingRight = False
-
-        if e_enemy.pos[0] < (self.screen.get_size()[0] - e_enemy.width):
-            e_enemy.movingRight = True
-
-        if e_enemy.pos[0] >= (self.screen.get_size()[0] - e_enemy.width):
-            e_enemy.movingRight = False
-            e_enemy.retreating = False
     
     def handle_key_input(self, e: pygame.event):
         if(e.type == pygame.KEYDOWN):
@@ -173,6 +120,13 @@ class Game:
                 pass
             if e.key == pygame.K_q:
                 sleep(3)
+                if len(self.bullets) > 0:
+                    for bullet in self.bullets:
+                        self.bullets.remove(bullet)
+                if len(self.enemies) > 0:
+                    for enemy in self.enemies:
+                        self.enemies.remove(enemy)
+                self.reset_battle()
                 self.scene = 1
             if e.key == pygame.K_b:
                 if(self.magazine == 0 and self.reloading == False):
@@ -183,12 +137,16 @@ class Game:
                         self.magazine -= 1
                         self.magazine_text = f"BULLETS: {self.magazine}"
             if e.key == pygame.K_UP:
+                self.e_player.movingDown = False
                 self.e_player.movingUp = True
             if e.key == pygame.K_LEFT:
+                self.e_player.movingRight = False
                 self.e_player.movingLeft = True
             if e.key == pygame.K_RIGHT:
+                self.e_player.movingLeft = False
                 self.e_player.movingRight = True
             if e.key == pygame.K_DOWN:
+                self.e_player.movingUp = False
                 self.e_player.movingDown = True
         if(e.type == pygame.KEYUP):
             if e.key == pygame.K_UP:
@@ -230,8 +188,15 @@ class Game:
         self.e_player.update()
         self.e_player.render(self.screen)
         if self.e_player.health <= 0:
-            sleep(5)
-            self.running = False
+            sleep(3)
+            self.reset_battle()
+            if len(self.bullets) > 0:
+                for bullet in self.bullets:
+                    self.bullets.remove(bullet)
+            if len(self.enemies) > 0:
+                for enemy in self.enemies:
+                    self.enemies.remove(enemy)
+            self.scene = 1
 
         #HANDLE ENEMY LOGIC
         for enemy in self.enemies:
@@ -239,27 +204,42 @@ class Game:
             enemy.render(self.screen)
             if enemy.health <= 0:
                 self.enemies.remove(enemy)
+                if len(self.enemies) <= 0:
+                    self.wave += 1
+                
                 self.score += 1
+                
                 self.score_text = f"SCORE: {self.score}"
-                if not self.spawning_enemy:
-                    Thread(target=self.spawn_enemy, args=1).start()
+                if not self.spawning_enemy and len(self.enemies) == 0:
+                    if self.wave < 50:
+                        Thread(target=self.spawn_enemy, args=[(self.wave // 10) + 1]).start()
+                    else:
+                        Thread(target=self.spawn_enemy, args=[5]).start()
             if enemy.collided(self.e_player):
-                self.e_player.take_damage()
+                if not self.e_player.invincible:
+                    if not self.e_player.taking_damage:
+                        Thread(target=self.e_player.take_damage).start()
                 enemy.attacking = False
                 enemy.retreating = True
+                self.e_player.invincible = True
             if enemy.attacking:
+                self.e_player.invincible = False
                 enemy.idle = False
-                self.enemy_attack(enemy)
+                enemy.retreating = False
+                enemy.enemy_attack()
             elif enemy.retreating:
+                self.e_player.invincible = True
                 enemy.idle = False
-                self.enemy_retreat(enemy)
+                enemy.attacking = False
+                enemy.enemy_retreat()
                 enemy.idle = True
             elif enemy.idle:
+                self.e_player.invincible = False
                 enemy.attacking = False
                 enemy.retreating = False
                 if not enemy.idling:
                     enemy.idling = True
-                    Thread(target=self.enemy_idle, args=[enemy]).start()
+                    Thread(target=enemy.enemy_idle).start()
 
         #HANDLE BULLET RENDERING AND COLLISION DETECTION
         if len(self.bullets) > 0:
@@ -271,20 +251,15 @@ class Game:
                         # enemy.idle = False
                         if not enemy.retreating:
                             enemy.take_damage()
-                            print("HIT!")
-                            if enemy.health > 3 :
+                            # print("HIT!")
+                            if enemy.health < 3 :
                                 enemy.attacking = True
                                 enemy.idle = False
-                        if len(self.bullets) > 0:
+                        if len(self.bullets) > 0 and bullet in self.bullets:
                             self.bullets.remove(bullet)
                         
-                if bullet.out_of_bounds() and len(self.bullets) > 0:
+                if bullet.out_of_bounds() and len(self.bullets) > 0 and bullet in self.bullets:
                     self.bullets.remove(bullet)                    
-
-        # flip() the display to put your work on screen
-        # pygame.display.flip()
-        
-        
     
     def run(self):
         while self.running:
