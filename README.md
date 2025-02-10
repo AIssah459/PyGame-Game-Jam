@@ -1,4 +1,4 @@
-#PyGame Game Jam
+# PyGame Game Jam
 
 PyGame Project for Game Jam
 

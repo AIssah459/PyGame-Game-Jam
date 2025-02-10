@@ -5,6 +5,7 @@ import random
 from threading import Thread
 from gameutils.imgutils import load_image, load_image_no_convert, load_sound
 from gameutils.entities import PhysicsEntity, EnemyEntity
+from gameutils.entities import ENEMY_IDLE, ENEMY_ATTACKING, ENEMY_RETREATING, ENEMY_DODGE, ENEMY_CHASE
 
 DEFAULT_SCREEN_RESOLUTION = (1280, 720)
 RELOAD_TIME = 2
@@ -219,58 +220,124 @@ class Game:
                 if not self.e_player.invincible:
                     if not self.e_player.taking_damage:
                         Thread(target=self.e_player.take_damage).start()
-                enemy.attacking = False
-                enemy.retreating = True
+                    enemy.action_state = ENEMY_RETREATING
                 self.e_player.invincible = True
-            if enemy.attacking:
-                self.e_player.invincible = False
-                enemy.idle = False
-                enemy.retreating = False
-                enemy.enemy_attack()
-            elif enemy.retreating:
-                self.e_player.invincible = True
-                enemy.idle = False
-                enemy.attacking = False
-                enemy.enemy_retreat()
-                enemy.idle = True
-            elif enemy.idle:
-                self.e_player.invincible = False
-                enemy.attacking = False
-                enemy.retreating = False
-                if not enemy.idling:
-                    enemy.idling = True
-                    Thread(target=enemy.enemy_idle).start()
+            match enemy.action_state:
+                case 1:
+                    # print(enemy.action_state)
+                    if not enemy.action_state_locked:
+                        enemy.action_state_locked = True
+                        self.e_player.invincible = False
+                        enemy.enemy_attack()
+                case 2:
+                    # print(enemy.action_state)
+                    if not enemy.action_state_locked:
+                        #print("RETREATING")
+                        enemy.action_state_locked = True
+                        self.e_player.invincible = True
+                        enemy.enemy_retreat()
+                case 3:
+                    # print(enemy.action_state)
+                    if not enemy.action_state_locked:
+                        enemy.action_state_locked = True
+                        Thread(target=enemy.dodge).start()
+                case 0:
+                    if not enemy.action_state_locked:
+                        self.e_player.invincible = False
+                        enemy.action_state_locked = True
+                        
+                        Thread(target=enemy.enemy_idle).start()
+                        # print("CANT DO SHIT")
+                case _:
+                    pass
 
         #HANDLE BULLET RENDERING AND COLLISION DETECTION
         if len(self.bullets) > 0:
             for bullet in self.bullets:
                 bullet.update()
                 bullet.render(self.screen)
+                if bullet.out_of_bounds() and len(self.bullets) > 0 and bullet in self.bullets:
+                    self.bullets.remove(bullet) 
                 for enemy in self.enemies:
                     if bullet.collided(enemy):
-                        # enemy.idle = False
+                        if enemy.action_state is not ENEMY_RETREATING:
+                            print("HE WASNT RETREATING " + str(enemy.action_state))
+                            enemy.take_damage()
+                            # print("HIT!")
+                            if enemy.health < 4 and enemy.action_state == ENEMY_IDLE:
+                                enemy.action_state_locked = False
+                                enemy.action_state = ENEMY_ATTACKING
+                                enemy.action_state_locked = True
+                        if len(self.bullets) > 0 and bullet in self.bullets:
+                            self.bullets.remove(bullet)
+                                           
+    
+    def test_battle(self):
+        if len(self.enemies) < 1 and not self.spawning_enemy:
+            Thread(target=self.spawn_enemy, args=[1]).start()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+            if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+                self.handle_key_input(event)
+
+        self.render_background()
+        self.display_score()
+        self.display_magazine_text()
+
+        # HANDLE PLAYER LOGIC
+        self.e_player.update()
+        self.e_player.render(self.screen)
+
+        # HANDLE ENEMY LOGIC
+        for enemy in self.enemies:
+            if enemy.idle:
+                enemy.idle = False
+            if enemy.attacking:
+                enemy.attacking = False
+            if enemy.retreating:
+                enemy.retreating - False
+            enemy.dodger = True
+            enemy.update()
+            enemy.render(self.screen)
+            if enemy.health <= 0:
+                self.enemies.remove(enemy)
+                if len(self.enemies) < 1 and not self.spawning_enemy:
+                    Thread(target=self.spawn_enemy, args=[1]).start()
+            if enemy.dodger:
+                # print("Dodging")
+                enemy.idle = False
+                enemy.retreating = False
+                enemy.attacking = False
+                if not enemy.dodging:
+                    enemy.dodging = True
+                    Thread(target=enemy.dodge).start()
+
+        if len(self.bullets) > 0:
+            for bullet in self.bullets:
+                bullet.update()
+                bullet.render(self.screen)
+                if bullet.out_of_bounds() and len(self.bullets) > 0 and bullet in self.bullets:
+                    self.bullets.remove(bullet) 
+                for enemy in self.enemies:
+                    if bullet.collided(enemy):
                         if not enemy.retreating:
                             enemy.take_damage()
                             # print("HIT!")
-                            if enemy.health < 3 :
-                                enemy.attacking = True
-                                enemy.idle = False
                         if len(self.bullets) > 0 and bullet in self.bullets:
                             self.bullets.remove(bullet)
-                        
-                if bullet.out_of_bounds() and len(self.bullets) > 0 and bullet in self.bullets:
-                    self.bullets.remove(bullet)                    
-    
+
     def run(self):
         while self.running:
             if self.scene == 1:
                 self.menu()
                 pygame.display.update()
-                self.clock.tick(24)  # limits FPS to 60
+                self.clock.tick(24)  # limits FPS to 24
             elif self.scene == 2:
+                #self.test_battle()
                 self.battle()
                 pygame.display.update()
-                self.clock.tick(24)  # limits FPS to 60
+                self.clock.tick(24)  # limits FPS to 24
     pygame.quit()
 
 Game().run()
