@@ -111,6 +111,7 @@ class PhysicsEntity:
 
     def take_damage(self):
         if self.e_type == 'player':
+            print("player took damage")
             self.taking_damage = True
             sleep(0.3)
             self.taking_damage = False
@@ -193,7 +194,22 @@ class EnemyEntity(PhysicsEntity):
         self.timer = False
         self.dodge_start_time = 0
 
+    def set_action_state(self, state: int):
+        self.action_state = state
+
+    def lock_action_state(self):
+        self.action_state_locked = True
+
+    def unlock_action_state(self):
+        self.action_state_locked = False
+
+
     def dodge(self):
+        self.lock_action_state()
+
+        self.movingLeft = False
+        self.movingRight = False
+
         if self.rect.x is not (self.game.screen.get_size()[0] - self.width):
             self.pos[0] = self.game.screen.get_size()[0] - self.width
 
@@ -211,8 +227,8 @@ class EnemyEntity(PhysicsEntity):
 
             if (time() - self.dodge_start_time) >= time_to_wait:
                 self.timer = False
-                self.action_state_locked = False
-                self.action_state = ENEMY_IDLE
+                self.unlock_action_state()
+                self.set_action_state(ENEMY_IDLE)
             else:
                 if len(self.game.bullets) > 0:
                     for e in self.game.bullets:
@@ -221,24 +237,28 @@ class EnemyEntity(PhysicsEntity):
                             self.movingDown = False
                             self.movingUp = True
                             sleep(0.5)
+                            self.movingUp = False
+                            sleep(0.15)
                             self.timer = False
-                            self.action_state_locked = False
-                            self.action_state = ENEMY_IDLE
+                            self.unlock_action_state()
+                            self.set_action_state(ENEMY_IDLE)
                         if ((self.rect.y - 60) < e.rect.y and e.rect.y < (self.rect.y + self.height/2)) or (self.rect.y < ((self.height/2) + 15)):
                             print("Bullet close to enemy")
                             self.movingUp = False
                             self.movingDown = True
                             sleep(0.5)
+                            self.movingDown = False
+                            sleep(0.15)
                             self.timer = False
-                            self.action_state_locked = False
-                            self.action_state = ENEMY_IDLE
+                            self.unlock_action_state()
+                            self.set_action_state(ENEMY_IDLE)
                 else:
                     pass
                 print("neither")
-        self.action_state_locked = False
+        self.unlock_action_state()
 
     def chase(self, e: PhysicsEntity):
-        self.action_state_locked = True
+        self.lock_action_state()
         if self.action_state == ENEMY_CHASE:
             if self.pos[0] > e.pos[0]:
                     self.movingRight = False
@@ -258,11 +278,13 @@ class EnemyEntity(PhysicsEntity):
                 self.action_state = ENEMY_RETREATING
 
     def enemy_idle(self):
+        self.movingLeft = False
+        self.movingRight = False
         if self.e_type == 'enemy':
             if self.action_state != ENEMY_IDLE:
                 return
             
-            self.action_state_locked = True
+            self.lock_action_state()
             
             sleep(0.5)
             
@@ -278,12 +300,16 @@ class EnemyEntity(PhysicsEntity):
                     if self.rect.y <= 15:
                         self.movingUp = False
                         self.movingDown = True
+                        self.lock_action_state()
                         sleep(0.2)
+                        self.unlock_action_state()
                     else:
                         if self.movingDown:
                             self.movingDown = False
                         self.movingUp = True
+                        self.lock_action_state()
                         sleep(0.2)
+                        self.unlock_action_state()
                     
                 elif rand_num in range (6, 10):
                     print("MOVING UP")
@@ -293,32 +319,38 @@ class EnemyEntity(PhysicsEntity):
                     if self.movingUp:
                         self.movingUp = False
                     self.movingDown = True
+                    self.lock_action_state()
                     sleep(0.2)
+                    self.unlock_action_state()
                 elif rand_num in range(11, 16):
-                    print("IDLE TO DODGE")
-                    self.game.prev_rand = rand_num
-                    self.action_state_locked = False
-                    self.action_state = ENEMY_DODGE
+                    if self.action_state is ENEMY_IDLE:
+                        print("IDLE TO DODGE")
+                        self.game.prev_rand = rand_num
+                        self.unlock_action_state()
+                        self.set_action_state(ENEMY_DODGE)
+                    return
                 elif rand_num in range(17, 19):
                     print("IDLE TO ATTACKING")
-                    self.action_state_locked = False
-                    self.action_state = ENEMY_ATTACKING
+                    self.unlock_action_state()
+                    self.set_action_state(ENEMY_ATTACKING)
+                    sleep(0.1)
+                    return
                 
                 else:
                     if self.game.prev_rand == rand_num:
-                        self.action_state_locked = False
+                        self.unlock_action_state()
                     else:
                         self.game.prev_rand = rand_num
                         self.movingUp = False
                         self.movingDown = False
-                        self.action_state_locked = False
+                        self.unlock_action_state()
                         sleep(0.2)
-        self.action_state_locked = False
-        print(self.action_state_locked)
+        self.unlock_action_state()
+        #print(self.action_state_locked)
 
     def enemy_attack(self):
         if self.e_type == 'enemy':
-            self.action_state_locked = True
+            self.lock_action_state()
             if self.rect.x > self.game.e_player.rect.x:
                 print("bruh")
                 self.movingRight = False
@@ -331,19 +363,39 @@ class EnemyEntity(PhysicsEntity):
                 print("HUUHHHH???")
 
             if(self.rect.x < (min(SAFE_ZONE + self.game.wave, MAX_SAFE_ZONE) * self.game.screen.get_size()[0]/100)):
-                print("Moving left")
+                print("SAFE ZONE")
                 self.movingUp = False
                 self.movingDown = False
                 self.movingRight = False
                 self.movingLeft = True
-                if (self.rect.x < 10) and (self.rect.y != self.game.e_player.rect.y):
-                    self.action_state_locked = False
-                    self.action_state = ENEMY_RETREATING
+                if (self.rect.x < 10): # and (self.rect.y != self.game.e_player.rect.y):
+                    print("lock in")
+                    self.unlock_action_state()
+                    self.set_action_state(ENEMY_RETREATING)
+                    return
                 if (self.collided(self.game.e_player)):
-                    self.action_state_locked = False
-                    self.action_state = ENEMY_RETREATING
+                    print("player hit")
+                    self.game.e_player.take_damage()
+                    self.unlock_action_state()
+                    self.set_action_state(ENEMY_RETREATING)
+                    return
 
             else:
+                self.lock_action_state()
+                print("not in safe zone")
+
+                if (self.rect.x < 10): # and (self.rect.y != self.game.e_player.rect.y):
+                    print("lock in")
+                    self.unlock_action_state()
+                    self.set_action_state(ENEMY_RETREATING)
+                    return
+                if (self.collided(self.game.e_player)):
+                    print("player hit")
+                    self.game.e_player.take_damage()
+                    self.unlock_action_state()
+                    self.set_action_state(ENEMY_RETREATING)
+                    return
+
                 if abs(self.game.e_player.rect.y - self.rect.y) < min(MAX_HOMING_STRENGTH, HOMING_STRENGTH + self.game.wave):
                     self.movingUp = False
                     self.movingDown = False
@@ -356,10 +408,11 @@ class EnemyEntity(PhysicsEntity):
                     print("just work")
                     self.movingUp = False
                     self.movingDown = True
-        self.action_state_locked = False
+        self.unlock_action_state()
+        self.set_action_state(ENEMY_ATTACKING)
 
     def enemy_retreat(self):
-        self.action_state_locked = True
+        self.lock_action_state()
         self.movingUp = False
         self.movingDown = False
         self.movingLeft = False
@@ -372,14 +425,18 @@ class EnemyEntity(PhysicsEntity):
             self.movingRight = True
 
         if self.rect.x >= (self.game.screen.get_size()[0] - self.width):
-            self.movingRight = False
-            self.action_state_locked = False
+            self.movingUp = False
+            self.movingDown = False
+            self.movingLeft = False
+            #self.movingRight = False
             if random.randint(1, 2) == 1:
                 print("2 TO 0")
-                self.action_state_locked = False
-                self.action_state = ENEMY_IDLE
+                self.unlock_action_state()
+                self.set_action_state(ENEMY_IDLE)
+                return
             else:
                 print("2 TO 3")
-                self.action_state_locked = False
-                self.action_state = ENEMY_DODGE
-        self.action_state_locked = False
+                self.unlock_action_state()
+                self.set_action_state(ENEMY_DODGE)
+                return
+        self.unlock_action_state()

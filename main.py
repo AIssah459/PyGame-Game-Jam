@@ -216,12 +216,6 @@ class Game:
                         Thread(target=self.spawn_enemy, args=[(self.wave // 10) + 1]).start()
                     else:
                         Thread(target=self.spawn_enemy, args=[5]).start()
-            if enemy.collided(self.e_player):
-                if not self.e_player.invincible:
-                    if not self.e_player.taking_damage:
-                        Thread(target=self.e_player.take_damage).start()
-                    enemy.action_state_locked = False
-                    enemy.action_state = ENEMY_RETREATING
                 self.e_player.invincible = True
 
             print(enemy.action_state)
@@ -231,7 +225,8 @@ class Game:
                     # print(enemy.action_state)
                     if not enemy.action_state_locked:
                         self.e_player.invincible = False
-                        Thread(target=enemy.enemy_attack).start()
+                        #Thread(target=enemy.enemy_attack).start()
+                        enemy.enemy_attack()
                     else:
                         print("CANT DO SHIT")
                 case 2:
@@ -269,9 +264,6 @@ class Game:
                             print("HE WASNT RETREATING " + str(enemy.action_state))
                             enemy.take_damage()
                             # print("HIT!")
-                            if enemy.health < 4 and enemy.action_state == ENEMY_IDLE:
-                                enemy.action_state_locked = False
-                                enemy.action_state = ENEMY_ATTACKING
                         if len(self.bullets) > 0 and bullet in self.bullets:
                             self.bullets.remove(bullet)
                                            
