@@ -220,34 +220,39 @@ class Game:
                 if not self.e_player.invincible:
                     if not self.e_player.taking_damage:
                         Thread(target=self.e_player.take_damage).start()
+                    enemy.action_state_locked = False
                     enemy.action_state = ENEMY_RETREATING
                 self.e_player.invincible = True
+
+            print(enemy.action_state)
             match enemy.action_state:
                 case 1:
+                    print("[" + str(enemy.rect.x) + ", " + str(enemy.rect.y) + "]")
                     # print(enemy.action_state)
                     if not enemy.action_state_locked:
-                        enemy.action_state_locked = True
                         self.e_player.invincible = False
-                        enemy.enemy_attack()
+                        Thread(target=enemy.enemy_attack).start()
+                    else:
+                        print("CANT DO SHIT")
                 case 2:
                     # print(enemy.action_state)
                     if not enemy.action_state_locked:
-                        #print("RETREATING")
-                        enemy.action_state_locked = True
                         self.e_player.invincible = True
-                        enemy.enemy_retreat()
+                        Thread(target=enemy.enemy_retreat).start()
+                    else:
+                        print("CANT DO SHIT")
                 case 3:
                     # print(enemy.action_state)
                     if not enemy.action_state_locked:
-                        enemy.action_state_locked = True
                         Thread(target=enemy.dodge).start()
+                    else:
+                        print("CANT DO SHIT")
                 case 0:
-                    if not enemy.action_state_locked:
+                    if enemy.action_state_locked == False:
                         self.e_player.invincible = False
-                        enemy.action_state_locked = True
-                        
                         Thread(target=enemy.enemy_idle).start()
-                        # print("CANT DO SHIT")
+                    else:
+                        print("CANT DO SHIT")
                 case _:
                     pass
 
@@ -267,7 +272,6 @@ class Game:
                             if enemy.health < 4 and enemy.action_state == ENEMY_IDLE:
                                 enemy.action_state_locked = False
                                 enemy.action_state = ENEMY_ATTACKING
-                                enemy.action_state_locked = True
                         if len(self.bullets) > 0 and bullet in self.bullets:
                             self.bullets.remove(bullet)
                                            
