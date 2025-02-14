@@ -13,6 +13,7 @@ PLAYER_HEIGHT = 75
 PLAYER_WIDTH = 100
 STARTING_POS = (0, (DEFAULT_SCREEN_RESOLUTION[1]/2 - PLAYER_HEIGHT/2))
 NUM_ENEMIES = 1
+DUMMY_PLAYER_PATH = 'Dummies/dummy_player-remove-bg.png'
 
 class Game:
     # pygame setup
@@ -30,13 +31,13 @@ class Game:
         self.spawning_enemy = False
 
         self.assets = {
-            'player-img': load_image_no_convert('Dummies/dummy_player-removebg-preview.png'),
+            'player-img': load_image_no_convert('shipv1.png'),
             'enemy-img': load_image_no_convert('Dummies/dummy-enemy-removebg-preview.png'),
             'bullet-img': load_image_no_convert('Dummies/dummy-bullet.gif'),
             'background-img': load_image('Dummies/dummy-background-space-3.jpeg'),
             'bullet-sound': load_sound('Dummies/laser-shot-ingame-230500.mp3')
         }
-        self.e_player = PhysicsEntity(self, 'player', STARTING_POS, (PLAYER_WIDTH, PLAYER_HEIGHT), self.assets['player-img'])
+        self.e_player = PhysicsEntity(self, 'player', STARTING_POS, (PLAYER_WIDTH, PLAYER_HEIGHT), pygame.transform.rotate(self.assets['player-img'], 270))
         self.wave = 1
         self.score = 0
         self.bullets = []
