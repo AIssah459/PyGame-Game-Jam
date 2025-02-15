@@ -90,39 +90,43 @@ class PhysicsEntity:
     def move_right(self):
         if(self.e_type == 'player'):
             self.velocity[0] = PLAYER_SPEED
-        elif self.e_type == 'enemy1':
-            self.velocity[0] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
-        elif self.e_type == 'enemy2':
-            self.velocity[0] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
+        else:
+            if self.e_type == 'enemy1':
+                self.velocity[0] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
+            if self.e_type == 'enemy2':
+                self.velocity[0] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
     
     #Move Entity left by a certain speed
     def move_left(self):
         if(self.pos[0] > 0):
             if(self.e_type == 'player'):
                 self.velocity[0] = -(PLAYER_SPEED)
-            elif self.e_type == 'enemy1':
-                self.velocity[0] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
-            elif self.e_type == 'enemy2':
-                self.velocity[0] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
+            else:
+                if self.e_type == 'enemy1':
+                    self.velocity[0] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
+                if self.e_type == 'enemy2':
+                    self.velocity[0] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
     
     #Move Entity up by a certain speed
     def move_up(self):
         if(self.pos[1] > 0):
             if(self.e_type == 'player'):
                 self.velocity[1] = -(PLAYER_SPEED)
-            elif self.e_type == 'enemy1':
-                self.velocity[1] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
-            elif self.e_type == 'enemy2':
-                self.velocity[1] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
+            else:
+                if self.e_type == 'enemy1':
+                    self.velocity[1] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
+                if self.e_type == 'enemy2':
+                    self.velocity[1] = -(min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2)))
 
     #Move Entity down by a certain speed
     def move_down(self):
         if(self.e_type == 'player'):
             self.velocity[1] = PLAYER_SPEED
-        elif self.e_type == 'enemy1':
-            self.velocity[1] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
-        elif self.e_type == 'enemy2':
-            self.velocity[1] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
+        else:
+            if self.e_type == 'enemy1':
+                self.velocity[1] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
+            if self.e_type == 'enemy2':
+                self.velocity[1] = min(ENEMY_MAX_SPEED, ENEMY_SPEED + ((self.game.wave - 1)/2))
 
     def set_x_velocity(self, n):
         self.velocity[0] = n 
@@ -180,22 +184,29 @@ class PhysicsEntity:
             self.rect.x = self.pos[0]
             self.rect.y = self.pos[1]
 
-        elif self.e_type == 'enemy1':
-            if(self.action_state == (ENEMY_ATTACKING or ENEMY_RETREATING)):
-                self.img = self.game.assets[f"enemy-img2-{self.current_image % 10 + 2}"]
-                self.img.set_colorkey('black')
-                self.current_image += 1
-        elif self.e_type == 'enemy2':
-            if(self.action_state == (ENEMY_ATTACKING or ENEMY_RETREATING)):
-                self.img = self.game.assets[f"enemy-img2-{self.current_image % 10 + 2}"]
-                self.img.set_colorkey('black')
-                self.current_image += 1
+        elif self.e_type == 'bullet':
+            if(self.pos[0] < 200000):
+                self.pos[0] += self.velocity[0]
+            self.rect.x = self.pos[0]
+            self.rect.y = self.pos[1]
+            
+        else:
+            if self.e_type == 'enemy1':
+                if(self.action_state == (ENEMY_ATTACKING or ENEMY_RETREATING)):
+                    self.img = pygame.transform.scale(self.game.assets[f"enemy-img2-{self.current_image % 10 + 2}"], (100, 100))
+                    self.img.set_colorkey('black')
+                    self.current_image += 1
+            if self.e_type == 'enemy2':
+                if(self.action_state == (ENEMY_ATTACKING or ENEMY_RETREATING)):
+                    self.img = pygame.transform.scale(self.game.assets[f"enemy-img2-{self.current_image % 10 + 2}"], (100, 100))
+                    self.img.set_colorkey('black')
+                    self.current_image += 1
 
             else:
                 if self.e_type == 'enemy1':
-                    self.img = self.game.assets['enemy-img1']
-                elif self.e_type == 'enemy2':
-                    self.img = self.game.assets['enemy-img2-1']
+                    self.img = pygame.transform.scale(self.game.assets['enemy-img1'], (100, 100))
+                if self.e_type == 'enemy2':
+                    self.img = pygame.transform.scale(self.game.assets['enemy-img2-1'], (100, 100))
 
             if self.movingUp:
                 if(self.pos[1] > 0):
@@ -219,12 +230,6 @@ class PhysicsEntity:
                     self.move_down()
                     frame_movement = (self.velocity[0], self.velocity[1])
                     self.pos[1] += frame_movement[1]
-            self.rect.x = self.pos[0]
-            self.rect.y = self.pos[1]
-            
-        elif self.e_type == 'bullet':
-            if(self.pos[0] < 200000):
-                self.pos[0] += self.velocity[0]
             self.rect.x = self.pos[0]
             self.rect.y = self.pos[1]
 
