@@ -1,6 +1,7 @@
 # Example file showing a basic pygame "game loop"
 import pygame
 from pygame.mixer import music
+from pygame.event import Event
 from time import sleep
 import random
 from threading import Thread
@@ -11,11 +12,13 @@ from gameutils.entities import ENEMY_IDLE, ENEMY_ATTACKING, ENEMY_RETREATING, EN
 DEFAULT_SCREEN_RESOLUTION = (1280, 720)
 
 HARDCORE_LEVEL = 20
+HARDCORE_MODE = pygame.USEREVENT + 1
 RELOAD_TIME = 2
 PLAYER_HEIGHT = 75
 PLAYER_WIDTH = 100
 STARTING_POS = (0, (DEFAULT_SCREEN_RESOLUTION[1]/2 - PLAYER_HEIGHT/2))
 NUM_ENEMIES = 1
+SPAWN_POWERUP_CHANCE = 30
 DUMMY_PLAYER_PATH = 'Dummies/dummy_player-remove-bg.png'
 
 class Game:
@@ -30,11 +33,13 @@ class Game:
 
         self.scene = 1
         
+        self.hardcore_mode = False
         self.screen = pygame.display.set_mode(DEFAULT_SCREEN_RESOLUTION)
         pygame.display.set_caption("Sample Title")
         self.clock = pygame.time.Clock()
         self.reloading = False
         self.spawning_enemy = False
+        self.spawning_powerup = False
         self.menu_blinking = False
 
         #ASSETS
@@ -47,13 +52,18 @@ class Game:
             'player-img': load_image_no_convert('shipv1.png'),
             'enemy-img': load_image_no_convert('enemy1.png'),
             'bullet-img': load_image_no_convert('Dummies/dummy-bullet.gif'),
-            'background-img': load_image('Dummies/dummy-background-space-3.jpeg'),
+            'power-up': load_image('minigun.png'),
+            'background-img': load_image('gamebackground.png'),
             'bullet-sound': load_sound('Dummies/laser-shot-ingame-230500.mp3'),
             'enemy-take-dmg-sound': load_sound('Dummies/01._damage_grunt_male.wav'),
             'enemy-death-sound': load_sound('Dummies/explosion.wav'),
             'player-dmg-sound': load_sound('Dummies/whip.wav'),
             'reload-sound': load_sound('Dummies/gun_reload_lock_or_click_sound.mp3'),
         }
+
+        # ASSET MANAGEMENT
+
+        self.assets['power-up'].set_colorkey('black')
 
         self.assets['bullet-sound'].set_volume(0.2)
         self.assets['enemy-death-sound'].set_volume(0.2)
@@ -65,6 +75,7 @@ class Game:
         self.magazine = 5
         self.enemies = []
         self.magazine_text_offset = 0
+        self.powerups = []
 
         self.score_text = f"SCORE: {self.score}"
         self.magazine_text = f"BULLETS: {self.magazine}"
@@ -88,6 +99,7 @@ class Game:
         self.e_player.pos = list(STARTING_POS)
 
         self.wave = 1
+        self.hardcore_mode = False
         self.score = 0
         self.e_player.health = 5
         self.magazine = 5
@@ -145,7 +157,8 @@ class Game:
         self.magazine_text = "RELOADING"
         self.reloading = True
         self.assets['reload-sound'].play()
-        sleep(RELOAD_TIME)
+        if not self.e_player.powered_up:
+            sleep(RELOAD_TIME)
         self.magazine = 5
         self.magazine_text = f"BULLETS: {self.magazine}"
         self.reloading = False
@@ -157,6 +170,15 @@ class Game:
             if len(self.enemies) < (self.wave // 3) + 1:
                 self.enemies.append(EnemyEntity(self, 'enemy', (self.screen.get_size()[0] - 100, random.randint(0, self.screen.get_size()[1] - (100 + 100))), (100, 100), self.assets['enemy-img']))
         self.spawning_enemy = False
+
+    def spawn_powerup(self):
+        self.spawning_powerup = True
+        sleep(1)
+        self.powerups.append(PhysicsEntity(self, 'powerup', (min(self.screen.get_size()[0]/2 - 15, random.randint(30, self.screen.get_size()[0]/2 - 15)), random.randint(100, self.screen.get_size()[1] - 100)), (55, 55), self.assets['power-up']))
+        sleep(10)
+        if len(self.powerups) > 0:
+            self.powerups.pop()
+        self.spawning_powerup = False
     
     def handle_key_input(self, e: pygame.event):
         if(e.type == pygame.KEYDOWN):
@@ -206,6 +228,13 @@ class Game:
         pygame.mixer.music.play(-1)
         self.music_playing = True
 
+    def hardcore_music(self):
+        print("HARDCORE MUSIIIIIIC")
+        self.hardcore_mode = True
+        load_music(self.songs[3])
+        pygame.mixer.music.play(-1)
+        self.music_playing = True
+
     def menu_blink(self):
         self.menu_blinking = True
         self.menu_text = f"PRESS ANY KEY TO PLAY"
@@ -228,14 +257,13 @@ class Game:
                 
 
     def battle(self):
+
         if self.wave == HARDCORE_LEVEL:
-            self.stop_music()
-            if not self.music_playing:
-                load_music(self.songs[3])
-                pygame.mixer.music.play(-1)
+            pygame.event.post(Event(HARDCORE_MODE))
 
         if len(self.enemies) < 1 and not self.spawning_enemy:
             Thread(target=self.spawn_enemy, args=[1]).start()
+
         # poll for events
         # pygame.QUIT event means the user clicked X to close your window
         for event in pygame.event.get():
@@ -243,6 +271,14 @@ class Game:
                 self.running = False
             if event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
                 self.handle_key_input(event)
+            if event.type == HARDCORE_MODE:
+                        print("AHHHHHHHHHHHHH")
+                        if not self.hardcore_mode:
+                            self.stop_music()
+                            self.hardcore_mode = True
+                        if not self.music_playing:
+                            Thread(target=self.hardcore_music).start()
+                            print("music not playing")
 
         # fill the screen with a color to wipe away anything from last frame
         #self.screen.fill("black")
@@ -280,10 +316,10 @@ class Game:
                 
                 self.score_text = f"SCORE: {self.score}"
                 if not self.spawning_enemy and len(self.enemies) == 0:
-                    if self.wave < 50:
-                        Thread(target=self.spawn_enemy, args=[(self.wave // 10) + 1]).start()
+                    if self.wave < HARDCORE_LEVEL:
+                        Thread(target=self.spawn_enemy, args=[(self.wave // 3) + 1]).start()
                     else:
-                        Thread(target=self.spawn_enemy, args=[5]).start()
+                        Thread(target=self.spawn_enemy, args=[7]).start()
                 self.e_player.invincible = True
 
             #print(enemy.action_state)
@@ -333,6 +369,26 @@ class Game:
                             # print("HIT!")
                         if len(self.bullets) > 0 and bullet in self.bullets:
                             self.bullets.remove(bullet)
+
+        #HANDLE POWER UP LOGIC
+        if len(self.powerups) > 0:
+            for powerup in self.powerups:
+                powerup.update()
+                powerup.render(self.screen)
+                if powerup.collided(self.e_player):
+                    if not self.e_player.powered_up:
+                        Thread(target=self.e_player.power_up).start()
+                    if powerup in self.powerups:
+                        self.powerups.remove(powerup)
+                for enemy in self.enemies:
+                    if powerup.collided(enemy) and enemy.action_state is not ENEMY_RETREATING:
+                        if len(self.powerups) > 0 and powerup in self.powerups:
+                            self.powerups.remove(powerup)
+
+        #POWERUP SPAWNING
+        spawn_powerup = random.randint(1, 100)
+        if spawn_powerup < SPAWN_POWERUP_CHANCE and len(self.powerups) < 1 and not self.spawning_powerup:
+            Thread(target=self.spawn_powerup).start()
 
     def run(self):
         while self.running:

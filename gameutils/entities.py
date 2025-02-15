@@ -19,6 +19,7 @@ MAX_HOMING_STRENGTH = 17
 # Bullet speed
 BULLET_SPEED = 15
 MAX_BULLET_SPEED = 30
+POWERUP_BULLET_SPEED = 40
 
 # Safe zone area
 SAFE_ZONE = 10
@@ -39,7 +40,10 @@ class PhysicsEntity:
         self.size = size
         self.img = pygame.transform.scale(img, size)
         if self.e_type == 'bullet':
-            self.velocity = [min(MAX_BULLET_SPEED, BULLET_SPEED + (self.game.wave/2)), 0]
+            if self.game.e_player.powered_up:
+                self.velocity = [POWERUP_BULLET_SPEED, 0]
+            else:
+                self.velocity = [min(MAX_BULLET_SPEED, BULLET_SPEED + (self.game.wave/2)), 0]
         else:
             self.velocity = [0, 0]
         
@@ -55,6 +59,7 @@ class PhysicsEntity:
             self.health = 5
             self.invincible = False
             self.taking_damage = False
+            self.powered_up = False
         elif self.e_type == 'enemy':
             self.health = 5
 
@@ -111,6 +116,13 @@ class PhysicsEntity:
     
     def set_y_velocity(self, n):
         self.velocity[1] = n
+
+    def power_up(self):
+        if self.e_type == 'player':
+            print("IT'S MORBIN' TIME!!!")
+            self.powered_up = True
+            sleep(5)
+            self.powered_up = False
 
     def take_damage(self):
         if self.e_type == 'player':
@@ -194,6 +206,7 @@ class EnemyEntity(PhysicsEntity):
     # ENEMY ACTIONS, SUCH AS IDLING, ATTACKING AND RETREATING
     def __init__(self, game, e_type, pos, size, img: pygame.Surface):
         super().__init__(game, e_type, pos, size, img)
+        self.e_type = 'enemy'
         self.action_state = ENEMY_IDLE
         self.action_state_locked = False
         self.timer = False
