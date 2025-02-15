@@ -29,15 +29,15 @@ class Game:
         self.scene = 1
         
         self.screen = pygame.display.set_mode(DEFAULT_SCREEN_RESOLUTION)
-        pygame.display.set_caption("PyGame-Game-Jam")
+        pygame.display.set_caption("Sample Title")
         self.clock = pygame.time.Clock()
-        self.gravity = False
         self.reloading = False
         self.spawning_enemy = False
+        self.menu_blinking = False
 
         #ASSETS
 
-        self.songs = ['battle-music.mp3', 'battle-music-hardcore.mp3']
+        self.songs = ['menu-music-beginning.mp3', 'menu-music-looped.mp3', 'battle-music.mp3', 'battle-music-hardcore.mp3']
 
         pygame.mixer.music.set_volume(0.3)
 
@@ -91,7 +91,7 @@ class Game:
         self.magazine = 5
         self.prev_rand = 0
         
-        load_music(self.songs[0])
+        load_music(self.songs[2])
 
         self.score_text = f"SCORE: {self.score}"
         self.magazine_text = f"BULLETS: {self.magazine}"
@@ -199,22 +199,35 @@ class Game:
             if e.key == pygame.K_DOWN:
                 self.e_player.movingDown = False
 
+    def menu_music(self):
+        load_music(self.songs[1])
+        pygame.mixer.music.play(-1)
+        self.music_playing = True
+
+    def menu_blink(self):
+        self.menu_blinking = True
+        self.menu_text = f"PRESS ANY KEY TO PLAY"
+        sleep(1)
+        self.menu_text = ""
+        sleep(1)
+        self.menu_blinking = False
+
     def menu(self):
         self.screen.fill('black')
         self.display_menu_text()
+        if not self.menu_blinking:
+            Thread(target=self.menu_blink).start()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
             if event.type == pygame.KEYDOWN:
-                # load_music(self.songs[0])
-                # pygame.mixer.music.play()
                 self.scene = 2
                 
 
     def battle(self):
         if self.wave == 50:
             self.stop_music()
-            load_music(self.songs[1])
+            load_music(self.songs[3])
             pygame.mixer.music.play(-1)
 
         if len(self.enemies) < 1 and not self.spawning_enemy:
@@ -320,13 +333,15 @@ class Game:
     def run(self):
         while self.running:
             if self.scene == 1:
+                if not self.music_playing:
+                    Thread(target=self.menu_music).start()
                 self.menu()
                 pygame.display.update()
                 self.clock.tick(24)  # limits FPS to 24
             elif self.scene == 2:
                 #self.test_battle()
                 if not self.music_playing:
-                    load_music(self.songs[0])
+                    load_music(self.songs[2])
                     pygame.mixer.music.play(-1)
                     self.music_playing = True
                 self.battle()
