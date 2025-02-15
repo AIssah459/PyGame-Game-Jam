@@ -5,6 +5,8 @@ from time import sleep
 from threading import Thread
 
 # SOME USEFUL CONSTANTS
+HARDCORE_LEVEL = 20
+
 # Player and enemy Speed
 PLAYER_SPEED = 20
 ENEMY_SPEED = 10
@@ -115,7 +117,7 @@ class PhysicsEntity:
             print("player took damage")
             self.taking_damage = True
             self.game.assets['player-dmg-sound'].play()
-            if self.game.wave < 20:
+            if self.game.wave < HARDCORE_LEVEL:
                 self.health -= 1
             else:
                 self.health -= 2

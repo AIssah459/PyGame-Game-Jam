@@ -9,6 +9,8 @@ from gameutils.entities import PhysicsEntity, EnemyEntity
 from gameutils.entities import ENEMY_IDLE, ENEMY_ATTACKING, ENEMY_RETREATING, ENEMY_DODGE, ENEMY_CHASE
 
 DEFAULT_SCREEN_RESOLUTION = (1280, 720)
+
+HARDCORE_LEVEL = 20
 RELOAD_TIME = 2
 PLAYER_HEIGHT = 75
 PLAYER_WIDTH = 100
@@ -43,7 +45,7 @@ class Game:
 
         self.assets = {
             'player-img': load_image_no_convert('shipv1.png'),
-            'enemy-img': load_image_no_convert('Dummies/dummy-enemy-removebg-preview.png'),
+            'enemy-img': load_image_no_convert('enemy1.png'),
             'bullet-img': load_image_no_convert('Dummies/dummy-bullet.gif'),
             'background-img': load_image('Dummies/dummy-background-space-3.jpeg'),
             'bullet-sound': load_sound('Dummies/laser-shot-ingame-230500.mp3'),
@@ -226,10 +228,11 @@ class Game:
                 
 
     def battle(self):
-        if self.wave == 20:
+        if self.wave == HARDCORE_LEVEL:
             self.stop_music()
-            load_music(self.songs[3])
-            pygame.mixer.music.play(-1)
+            if not self.music_playing:
+                load_music(self.songs[3])
+                pygame.mixer.music.play(-1)
 
         if len(self.enemies) < 1 and not self.spawning_enemy:
             Thread(target=self.spawn_enemy, args=[1]).start()
