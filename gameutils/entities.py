@@ -2,6 +2,7 @@ import pygame
 import random
 from time import time
 from time import sleep
+from threading import Thread
 
 # SOME USEFUL CONSTANTS
 # Player and enemy Speed
@@ -62,7 +63,7 @@ class PhysicsEntity:
     def out_of_bounds(self) -> bool:
         if(self.pos[0] > 0 and self.pos[0] < (self.game.screen.get_size()[0] - self.width) and self.pos[1] > 0 and self.pos[1] < self.game.screen.get_size()[1] - self.height):
             return False
-        print(f"{self.e_type} Out of Bounds!")
+        #print(f"{self.e_type} Out of Bounds!")
         return True
     
     def collided(self, e):
@@ -113,14 +114,16 @@ class PhysicsEntity:
         if self.e_type == 'player':
             print("player took damage")
             self.taking_damage = True
-            sleep(0.3)
-            self.taking_damage = False
+            self.game.assets['player-dmg-sound'].play()
             if self.game.wave < 50:
                 self.health -= 1
             else:
                 self.health -= 2
+            sleep(0.3)
+            self.taking_damage = False
         elif self.e_type == 'enemy':
             self.health -= 1
+            self.game.assets['enemy-take-dmg-sound'].play()
 
     def update(self):
         if self.e_type == 'player':
@@ -223,7 +226,7 @@ class EnemyEntity(PhysicsEntity):
             self.movingRight = False
             self.movingLeft = False
 
-            print(str(time() - self.dodge_start_time) + ", " + str(time_to_wait))
+            #print(str(time() - self.dodge_start_time) + ", " + str(time_to_wait))
 
             if (time() - self.dodge_start_time) >= time_to_wait:
                 self.timer = False
@@ -233,7 +236,7 @@ class EnemyEntity(PhysicsEntity):
                 if len(self.game.bullets) > 0:
                     for e in self.game.bullets:
                         if ((self.rect.y + self.height/2) < (e.rect.y + e.height/2) and (e.rect.y + e.height/2) < (self.rect.y + self.height + 60)) or (self.rect.y + self.height + 30) >= self.game.screen.get_size()[1] - 100:
-                            print("Bullet close to enemy")
+                            #print("Bullet close to enemy")
                             self.movingDown = False
                             self.movingUp = True
                             sleep(0.5)
@@ -243,7 +246,7 @@ class EnemyEntity(PhysicsEntity):
                             self.unlock_action_state()
                             self.set_action_state(ENEMY_IDLE)
                         if ((self.rect.y - 60) < e.rect.y and e.rect.y < (self.rect.y + self.height/2)) or (self.rect.y < ((self.height/2) + 15)):
-                            print("Bullet close to enemy")
+                            #print("Bullet close to enemy")
                             self.movingUp = False
                             self.movingDown = True
                             sleep(0.5)
@@ -254,7 +257,6 @@ class EnemyEntity(PhysicsEntity):
                             self.set_action_state(ENEMY_IDLE)
                 else:
                     pass
-                print("neither")
         self.unlock_action_state()
 
     def chase(self, e: PhysicsEntity):
@@ -295,7 +297,7 @@ class EnemyEntity(PhysicsEntity):
 
                 rand_num = random.randint(1, 20)
                 if rand_num in range(1, 5):
-                    print("MOVING DOWN")
+                    #print("MOVING DOWN")
                     self.game.prev_rand = rand_num
                     if self.rect.y <= 15:
                         self.movingUp = False
@@ -312,7 +314,7 @@ class EnemyEntity(PhysicsEntity):
                         self.unlock_action_state()
                     
                 elif rand_num in range (6, 10):
-                    print("MOVING UP")
+                    #print("MOVING UP")
                     self.game.prev_rand = rand_num
                     if self.rect.y > self.game.screen.get_size()[1] - (100 + 100 + 5):
                         pass
@@ -324,13 +326,13 @@ class EnemyEntity(PhysicsEntity):
                     self.unlock_action_state()
                 elif rand_num in range(11, 16):
                     if self.action_state is ENEMY_IDLE:
-                        print("IDLE TO DODGE")
+                        #print("IDLE TO DODGE")
                         self.game.prev_rand = rand_num
                         self.unlock_action_state()
                         self.set_action_state(ENEMY_DODGE)
                     return
                 elif rand_num in range(17, 19):
-                    print("IDLE TO ATTACKING")
+                    #print("IDLE TO ATTACKING")
                     self.unlock_action_state()
                     self.set_action_state(ENEMY_ATTACKING)
                     sleep(0.1)
@@ -351,47 +353,42 @@ class EnemyEntity(PhysicsEntity):
     def enemy_attack(self):
         if self.e_type == 'enemy':
             self.lock_action_state()
+            if (self.collided(self.game.e_player)):
+                if not self.game.e_player.taking_damage:
+                    Thread(target=self.game.e_player.take_damage).start()
+                self.unlock_action_state()
+                self.set_action_state(ENEMY_RETREATING)
+                return
             if self.rect.x > self.game.e_player.rect.x:
-                print("bruh")
+                #print("bruh")
                 self.movingRight = False
                 self.movingLeft = True
             elif self.rect.x < self.game.e_player.rect.x:
-                print("rlly")
+                #print("rlly")
                 self.movingLeft = False
                 self.movingRight = True
             else:
-                print("HUUHHHH???")
+                pass
+                #print("HUUHHHH???")
 
             if(self.rect.x < (min(SAFE_ZONE + self.game.wave, MAX_SAFE_ZONE) * self.game.screen.get_size()[0]/100)):
-                print("SAFE ZONE")
+                #print("SAFE ZONE")
                 self.movingUp = False
                 self.movingDown = False
                 self.movingRight = False
                 self.movingLeft = True
                 if (self.rect.x < 10): # and (self.rect.y != self.game.e_player.rect.y):
-                    print("lock in")
-                    self.unlock_action_state()
-                    self.set_action_state(ENEMY_RETREATING)
-                    return
-                if (self.collided(self.game.e_player)):
-                    print("player hit")
-                    self.game.e_player.take_damage()
+                    #print("lock in")
                     self.unlock_action_state()
                     self.set_action_state(ENEMY_RETREATING)
                     return
 
             else:
                 self.lock_action_state()
-                print("not in safe zone")
+                #print("not in safe zone")
 
-                if (self.rect.x < 10): # and (self.rect.y != self.game.e_player.rect.y):
-                    print("lock in")
-                    self.unlock_action_state()
-                    self.set_action_state(ENEMY_RETREATING)
-                    return
-                if (self.collided(self.game.e_player)):
-                    print("player hit")
-                    self.game.e_player.take_damage()
+                if (self.rect.x < 10):
+                    #print("lock in")
                     self.unlock_action_state()
                     self.set_action_state(ENEMY_RETREATING)
                     return
@@ -401,11 +398,11 @@ class EnemyEntity(PhysicsEntity):
                     self.movingDown = False
                     self.rect.y = self.game.e_player.rect.y
                 if self.rect.y > self.game.e_player.rect.y:
-                    print("come on")
+                    #print("come on")
                     self.movingDown = False
                     self.movingUp = True
                 elif self.rect.y < self.game.e_player.rect.y:
-                    print("just work")
+                    #print("just work")
                     self.movingUp = False
                     self.movingDown = True
         self.unlock_action_state()
@@ -413,6 +410,11 @@ class EnemyEntity(PhysicsEntity):
 
     def enemy_retreat(self):
         self.lock_action_state()
+
+        if self.collided(self.game.e_player) and not self.game.e_player.taking_damage:
+            #print("player hit")
+            Thread(target=self.game.e_player.take_damage).start()
+
         self.movingUp = False
         self.movingDown = False
         self.movingLeft = False
@@ -430,12 +432,12 @@ class EnemyEntity(PhysicsEntity):
             self.movingLeft = False
             #self.movingRight = False
             if random.randint(1, 2) == 1:
-                print("2 TO 0")
+                #print("2 TO 0")
                 self.unlock_action_state()
                 self.set_action_state(ENEMY_IDLE)
                 return
             else:
-                print("2 TO 3")
+                #print("2 TO 3")
                 self.unlock_action_state()
                 self.set_action_state(ENEMY_DODGE)
                 return
