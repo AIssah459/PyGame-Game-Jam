@@ -152,7 +152,7 @@ class Game:
         self.spawning_enemy = True
         sleep(1)
         for i in range(num_enemtes):
-            if len(self.enemies) < (self.wave // 10) + 1:
+            if len(self.enemies) < (self.wave // 3) + 1:
                 self.enemies.append(EnemyEntity(self, 'enemy', (self.screen.get_size()[0] - 100, random.randint(0, self.screen.get_size()[1] - (100 + 100))), (100, 100), self.assets['enemy-img']))
         self.spawning_enemy = False
     
@@ -226,7 +226,7 @@ class Game:
                 
 
     def battle(self):
-        if self.wave == 50:
+        if self.wave == 20:
             self.stop_music()
             load_music(self.songs[3])
             pygame.mixer.music.play(-1)

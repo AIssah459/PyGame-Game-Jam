@@ -115,7 +115,7 @@ class PhysicsEntity:
             print("player took damage")
             self.taking_damage = True
             self.game.assets['player-dmg-sound'].play()
-            if self.game.wave < 50:
+            if self.game.wave < 20:
                 self.health -= 1
             else:
                 self.health -= 2
