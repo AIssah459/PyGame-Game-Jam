@@ -50,7 +50,18 @@ class Game:
 
         self.assets = {
             'player-img': load_image_no_convert('shipv1.png'),
-            'enemy-img': load_image_no_convert('enemy1.png'),
+            'enemy-img1': load_image_no_convert('enemy1.png'),
+            'enemy-img2-1': load_image_no_convert('ENEMIES/enemy-sprites/enemy-img2.png'),
+            'enemy-img2-2': load_image_no_convert('ENEMIES/enemy-sprites/01-no-bg.png'),
+            'enemy-img2-3': load_image_no_convert('ENEMIES/enemy-sprites/02-no-bg.png'),
+            'enemy-img2-4': load_image_no_convert('ENEMIES/enemy-sprites/03-no-bg.png'),
+            'enemy-img2-5': load_image_no_convert('ENEMIES/enemy-sprites/04-no-bg.png'),
+            'enemy-img2-6': load_image_no_convert('ENEMIES/enemy-sprites/05-no-bg.png'),
+            'enemy-img2-7': load_image_no_convert('ENEMIES/enemy-sprites/06-no-bg.png'),
+            'enemy-img2-8': load_image_no_convert('ENEMIES/enemy-sprites/07-no-bg.png'),
+            'enemy-img2-9': load_image_no_convert('ENEMIES/enemy-sprites/08-no-bg.png'),
+            'enemy-img2-10': load_image_no_convert('ENEMIES/enemy-sprites/09-no-bg.png'),
+            'enemy-img2-11': load_image_no_convert('ENEMIES/enemy-sprites/10-no-bg.png'),
             'bullet-img': load_image_no_convert('Dummies/dummy-bullet.gif'),
             'power-up': load_image('minigun.png'),
             'background-img': load_image('gamebackground.png'),
@@ -167,8 +178,16 @@ class Game:
         self.spawning_enemy = True
         sleep(1)
         for i in range(num_enemtes):
-            if len(self.enemies) < (self.wave // 3) + 1:
-                self.enemies.append(EnemyEntity(self, 'enemy', (self.screen.get_size()[0] - 100, random.randint(0, self.screen.get_size()[1] - (100 + 100))), (100, 100), self.assets['enemy-img']))
+            enemy_type = random.randint(1, 2)
+            if enemy_type == 1:
+                if len(self.enemies) < (self.wave // 3) + 1:
+                    self.enemies.append(EnemyEntity(self, 'enemy1', (self.screen.get_size()[0] - 100, random.randint(0, self.screen.get_size()[1] - (100 + 100))), (100, 100), self.assets['enemy-img1']))
+                    print("enemy1 spawned")
+            else:
+                if len(self.enemies) < (self.wave // 3) + 1:
+                    self.enemies.append(EnemyEntity(self, 'enemy2', (self.screen.get_size()[0] - 100, random.randint(0, self.screen.get_size()[1] - (100 + 100))), (100, 100), self.assets['enemy-img2-1']))
+                    print("enemy2 spawned")
+
         self.spawning_enemy = False
 
     def spawn_powerup(self):
