@@ -7,10 +7,10 @@ Ex.: If main is in /dist, drag it up one folder
 
 ## Installation
 ### Windows
-Download main.exe
+From releases, download main.exe
 
 ### MacOS
-Download main
+From releases, download main
 
 ## CONTROLS
 
