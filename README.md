@@ -6,11 +6,7 @@ Make sure to run main within top folder
 Ex.: If main is in /dist, drag it up one folder
 
 ## Installation
-### Windows
-From releases, download main.exe
-
-### MacOS
-From releases, download main
+`git clone https://github.com/AIssah459/PyGame-Game-Jam`
 
 ## CONTROLS
 
